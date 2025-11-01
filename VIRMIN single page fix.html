@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Widget Asisten Virtual</title>
+    <!-- Memuat Tailwind CSS untuk styling halaman admin ini -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat PDF.js untuk membaca file PDF di browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+    <style>
+        /* Style tambahan untuk antarmuka yang lebih baik */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .preview-header {
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 p-4 md:p-10">
+
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Kolom Kiri: Panel Konfigurasi Admin -->
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+            <h1 class="text-2xl font-bold mb-6 text-white">VIRMIN - Generator Widget Asisten Virtual</h1>
+            
+            <!-- Peringatan Keamanan Kritis -->
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-lg mb-6" role="alert">
+                <h3 class="font-bold">PERINGATAN KEAMANAN PENTING!</h3>
+                <p class="text-sm">API Key Anda akan disembunyikan & disematkan di dalam kode widget (tapi tidak terlihat langsung). Ini berarti <strong class="underline">siapapun yang bisa membuka kode sumber (view-source) website Anda dan paham coding mungkin dapat melihat API Key tersebut</strong>. Jadi gunakan generator widget ini hanya untuk proyek pribadi atau demo. Untuk produksi kapasitas luas & banyak, API Key lebih Aman disimpan di server (backend).</p>
+            </div>
+
+            <!-- Langkah 1: Konfigurasi API -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-3 border-b border-gray-600 pb-2 text-gray-100">Langkah 1: Konfigurasi API</h2>
+                <label for="apiKey" class="block text-sm font-medium text-gray-300 mb-1">Google AI API Key</label>
+                <input type="password" id="apiKey" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400" placeholder="Masukkan API Key Anda dengan aman disini...">
+            </div>
+
+            <!-- Langkah 2: Unggah Pengetahuan (PDF) -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-3 border-b border-gray-600 pb-2 text-gray-100">Langkah 2: Unggah Pengetahuan Virtual Admin (PDF)</h2>
+                <label for="pdfUpload" class="block text-sm font-medium text-gray-300 mb-1">Unggah File PDF</label>
+                <input type="file" id="pdfUpload" accept=".pdf" class="w-full text-sm text-gray-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-lg file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-700 file:text-blue-200
+                    hover:file:bg-blue-600
+                ">
+                <p id="pdfStatus" class="text-xs text-gray-400 mt-2">Status: Belum ada file diunggah.</p>
+            </div>
+
+            <!-- Langkah 3: Kustomisasi Tampilan -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-3 border-b border-gray-600 pb-2 text-gray-100">Langkah 3: Kustomisasi Tampilan</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="widgetName" class="block text-sm font-medium text-gray-300 mb-1">Nama Asisten</label>
+                        <input type="text" id="widgetName" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg shadow-sm placeholder-gray-400" value="Admin Support">
+                    </div>
+                    <div>
+                        <label for="themeColor" class="block text-sm font-medium text-gray-300 mb-1">Warna Tema (custom)</label>
+                        <!-- Typo diperbaiki: type="color" -->
+                        <input type="color" id="themeColor" class="w-full h-10 p-1 border border-gray-600 bg-gray-700 rounded-lg" value="#0052cc">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label for="welcomeMsg" class="block text-sm font-medium text-gray-300 mb-1">Pesan Selamat Datang (Greeting Message)</label>
+                    <textarea id="welcomeMsg" rows="2" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg shadow-sm placeholder-gray-400" placeholder="Halo! Ada yang bisa saya bantu?">Halo! Ada yang bisa saya bantu dengan informasi dari dokumen kami?</textarea>
+                </div>
+                <div class="mt-4">
+                    <label for="launcherText" class="block text-sm font-medium text-gray-300 mb-1">Teks Tombol Chat</label>
+                    <input type="text" id="launcherText" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-gray-100 rounded-lg shadow-sm placeholder-gray-400" value="Tanya CS">
+                </div>
+            </div>
+
+            <!-- Pesan Error -->
+            <p id="errorMsg" class="text-red-400 text-sm mb-4 text-center"></p>
+
+            <!-- Tombol Aksi -->
+            <div>
+                <button id="generateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:bg-blue-700 transition duration-300">
+                    Hasilkan Kode Widget
+                </button>
+                <!-- Keterangan baru ditambahkan di sini -->
+                <p id="apiKeyWarning" class="text-red-400 text-sm mt-2 text-center" style="display: none;">Anda belum memasukan API key</p>
+            </div>
+
+        </div>
+
+        <!-- Kolom Kanan: Pratinjau dan Kode Output -->
+        <div class="flex flex-col gap-8">
+            <!-- Pratinjau Widget -->
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <h2 class="text-lg font-semibold mb-4 text-white">Pratinjau Widget</h2>
+                <div class="h-96 w-full bg-gray-700 rounded-lg flex items-center justify-center relative overflow-hidden border border-gray-600">
+                    <!-- Ini adalah simulasi pratinjau -->
+                    <div class="w-full h-full absolute bg-gray-700 p-4">
+                        <div class="w-64 h-80 bg-white rounded-lg shadow-2xl float-right flex flex-col">
+                            <div id="previewHeader" class="preview-header p-3 text-white rounded-t-lg" style="background-color: #0052cc;">
+                                <h3 id="previewName" class="font-bold">Admin Support</h3>
+                            </div>
+                            <div class="flex-1 p-3 overflow-y-auto">
+                                <div class="bg-gray-100 p-2 rounded-lg text-sm max-w-xs">
+                                    <p id="previewWelcome" class="text-gray-800">Halo! Ada yang bisa saya bantu dengan informasi dari dokumen kami?</p>
+                                </div>
+                            </div>
+                            <div class="p-2 border-t">
+                                <input type="text" class="w-full text-sm p-2 border rounded-lg" placeholder="Ketik pesan..." disabled>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-gray-400">Pratinjau Tampilan Widget</span>
+                </div>
+            </div>
+
+            <!-- Output Kode -->
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-white">Langkah 4: Salin Kode Anda</h2>
+                    <button id="copyBtn" class="bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-gray-600 transition">
+                        Salin Kode
+                    </button>
+                </div>
+                <textarea id="outputCode" readonly class="w-full h-64 p-4 bg-gray-900 text-gray-300 rounded-lg border border-gray-700 font-mono text-xs focus:outline-none placeholder-gray-500" placeholder="Kode widget Anda akan muncul di sini..."></textarea>
+                <p class="text-xs text-gray-400 mt-2">Tempelkan kode ini tepat sebelum tag `&lt;/body&gt;` penutup di <i>website</i> Anda.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer Identitas Pembuat -->
+    <footer class="text-center text-gray-500 text-sm mt-12 pb-8">
+        <p>(2025) Crafted with ❤️ by Om Ger | Ai-Labs</p>
+    </footer>
+    <!-- Akhir Footer -->
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let pdfFullText = "";
+
+        const apiKeyEl = document.getElementById('apiKey');
+        const pdfUploadEl = document.getElementById('pdfUpload');
+        const pdfStatusEl = document.getElementById('pdfStatus');
+        const widgetNameEl = document.getElementById('widgetName');
+        const themeColorEl = document.getElementById('themeColor');
+        const welcomeMsgEl = document.getElementById('welcomeMsg');
+        const launcherTextEl = document.getElementById('launcherText'); // Elemen baru
+        const generateBtn = document.getElementById('generateBtn');
+        const outputCodeEl = document.getElementById('outputCode');
+        const copyBtn = document.getElementById('copyBtn');
+        const errorMsgEl = document.getElementById('errorMsg');
+        const apiKeyWarningEl = document.getElementById('apiKeyWarning'); // <-- Tambahan
+
+        // Elemen Pratinjau
+        const previewHeader = document.getElementById('previewHeader');
+        const previewName = document.getElementById('previewName');
+        const previewWelcome = document.getElementById('previewWelcome');
+
+        // --- Logika Pemrosesan PDF ---
+        pdfUploadEl.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file || file.type !== 'application/pdf') {
+                pdfStatusEl.textContent = "Error: Harap unggah file PDF.";
+                pdfStatusEl.style.color = 'red';
+                pdfFullText = "";
+                return;
+            }
+
+            pdfStatusEl.textContent = "Memproses PDF... (ini mungkin perlu waktu)";
+            pdfStatusEl.style.color = 'orange';
+
+            try {
+                const fileReader = new FileReader();
+                fileReader.onload = async function() {
+                    const typedarray = new Uint8Array(this.result);
+                    const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+                    
+                    let fullText = "";
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                    }
+                    pdfFullText = fullText;
+                    pdfStatusEl.textContent = `Sukses! PDF diproses (${pdf.numPages} halaman, ${pdfFullText.length} karakter).`;
+                    pdfStatusEl.style.color = 'green';
+                };
+                fileReader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error("Error reading PDF:", error);
+                pdfStatusEl.textContent = `Error: Gagal memproses PDF. ${error.message}`;
+                pdfStatusEl.style.color = 'red';
+                pdfFullText = "";
+            }
+        });
+
+        // --- Logika Pratinjau Real-time ---
+        widgetNameEl.addEventListener('input', () => {
+            previewName.textContent = widgetNameEl.value || 'Admin Support';
+        });
+        welcomeMsgEl.addEventListener('input', () => {
+            previewWelcome.textContent = welcomeMsgEl.value || 'Halo!';
+        });
+        themeColorEl.addEventListener('input', () => {
+            previewHeader.style.backgroundColor = themeColorEl.value;
+        });
+
+        // --- Logika Validasi API Key ---
+        function validateApiKey() {
+            const apiKey = apiKeyEl.value;
+            if (!apiKey) {
+                generateBtn.disabled = true;
+                // Tambahkan style disabled menggunakan Tailwind
+                generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                apiKeyWarningEl.style.display = 'block'; // Tampilkan peringatan
+            } else {
+                generateBtn.disabled = false;
+                // Hapus style disabled
+                generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                apiKeyWarningEl.style.display = 'none'; // Sembunyikan peringatan
+            }
+        }
+        
+        // Tambahkan listener ke input API key untuk validasi real-time
+        apiKeyEl.addEventListener('input', validateApiKey);
+        
+        // Jalankan validasi saat halaman pertama kali dimuat
+        // (untuk menonaktifkan tombol jika input kosong di awal)
+        validateApiKey();
+
+
+        // --- Logika Generate Kode ---
+        generateBtn.addEventListener('click', () => {
+            errorMsgEl.textContent = ''; // Bersihkan error setiap kali diklik
+
+            const apiKey = apiKeyEl.value;
+            const widgetName = widgetNameEl.value;
+            const themeColor = themeColorEl.value;
+            const welcomeMsg = welcomeMsgEl.value;
+            const launcherText = launcherTextEl.value; // Ambil teks launcher
+
+            if (!apiKey) {
+                errorMsgEl.textContent = "Harap masukkan API Key Anda.";
+                return;
+            }
+            if (!pdfFullText) {
+                errorMsgEl.textContent = "Harap unggah dan proses file PDF terlebih dahulu.";
+                return;
+            }
+            if (!launcherText) {
+                errorMsgEl.textContent = "Harap masukkan teks untuk tombol peluncur.";
+                return;
+            }
+
+            // Escape string untuk dimasukkan ke dalam template literal JS
+            // --- PERUBAHAN: Gunakan Base64 ---
+            // 1. Sandikan API key menggunakan btoa (browser's base64 encoder)
+            const encodedApiKey = btoa(apiKey); 
+            // 2. Escape hasil base64 tadi untuk dimasukkan ke string
+            const escapedEncodedApiKey = JSON.stringify(encodedApiKey);
+            // --- AKHIR PERUBAHAN ---
+
+            // Escape backticks, backslashes, dan interpolasi ${} untuk template literal di dalam template literal
+            const escapedPdfContext = pdfFullText
+                .replace(/\\/g, '\\\\') // Escape backslashes
+                .replace(/`/g, '\\`')  // Escape backticks
+                .replace(/\$\{/g, '\\${'); // Escape ${ interpolations
+
+            const escapedWidgetName = JSON.stringify(widgetName);
+            const escapedThemeColor = JSON.stringify(themeColor);
+            const escapedWelcomeMsg = JSON.stringify(welcomeMsg);
+            const escapedLauncherText = JSON.stringify(launcherText); // Escape teks launcher
+
+            // Membuat template HTML, CSS, dan JS untuk widget akhir
+            const widgetCode = `
+<!-- Mulai Kode Widget Asisten Virtual -->
+<div id="vb-chat-widget-container"></div>
+<script type="module">
+// --- Konfigurasi Widget ---
+// Data ini disematkan dari generator
+const WIDGET_CONFIG = {
+    // --- PERUBAHAN: Nama variabel diubah & komentar dihapus ---
+    VD: ${escapedEncodedApiKey}, 
+    // --- AKHIR PERUBAHAN ---
+    PDF_CONTEXT: \`${escapedPdfContext}\`, 
+    WIDGET_NAME: ${escapedWidgetName},
+    THEME_COLOR: ${escapedThemeColor},
+    WELCOME_MSG: ${escapedWelcomeMsg},
+    LAUNCHER_TEXT: ${escapedLauncherText} // Tambahkan teks launcher
+};
+// -------------------------
+
+// --- PERUBAHAN: Dekode key dari var baru & hapus komentar ---
+const DECODED_API_KEY = atob(WIDGET_CONFIG.VD);
+// --- PERBAIKAN: Typo 'generativelace' diperbaiki menjadi 'generativelanguage' ---
+const GEMINI_API_URL = \`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=\${DECODED_API_KEY}\`;
+// --- AKHIR PERBAIKAN ---
+
+
+// --- Fungsi Helper ---
+async function fetchWithRetry(fetchFn, maxRetries = 5, baseDelay = 1000) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+        try {
+            const response = await fetchFn();
+            if (response.status === 429 || response.status >= 500) {
+                // Jangan log retry 429/5xx sebagai error di console
+                throw new Error(\`Server error: \${response.status}\`);
+            }
+            return response;
+        } catch (error) {
+            attempt++;
+            if (attempt >= maxRetries) {
+                // Log error akhir jika semua retry gagal
+                console.error("Fetch failed after max retries:", error.message);
+                throw error;
+            }
+            const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+async function callGeminiAPI(userQuestion) {
+    const fullPrompt = \`
+Anda adalah asisten virtual. Berdasarkan HANYA pada konteks berikut, jawab pertanyaan pengguna.
+Jika jawaban tidak dapat ditemukan dalam konteks, katakan dengan sopan bahwa Anda tidak dapat menemukan informasi tersebut dalam dokumen.
+Jangan gunakan pengetahuan di luar konteks yang diberikan.
+
+--- KONTEKS DARI PDF ---
+\${WIDGET_CONFIG.PDF_CONTEXT}
+--- AKHIR KONTEKS ---
+
+PERTANYAAN PENGGUNA:
+"\${userQuestion}"
+
+JAWABAN ANDA:
+    \`;
+
+    const payload = {
+        contents: [{
+            parts: [{ text: fullPrompt }]
+        }],
+        generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 1024
+        }
+    };
+
+    try {
+        const response = await fetchWithRetry(() => fetch(GEMINI_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }));
+
+        if (!response.ok) {
+            const errorBody = await response.json();
+            console.error("API Error:", errorBody);
+            // Hindari penggunaan alert()
+            return \`Maaf, terjadi kesalahan saat menghubungi server AI. (\${response.status})\`;
+        }
+
+        const result = await response.json();
+        
+        if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts[0].text) {
+            return result.candidates[0].content.parts[0].text;
+        } else {
+            // Tangani jika tidak ada kandidat atau struktur tidak sesuai
+            if (result.promptFeedback) {
+                console.warn("API call blocked or failed:", result.promptFeedback);
+                return "Maaf, permintaan Anda tidak dapat diproses saat ini karena alasan keamanan atau filter konten.";
+            }
+            console.warn("API response structure unexpected:", result);
+            return "Maaf, saya tidak dapat memproses jawaban saat ini. Silakan coba lagi.";
+        }
+    } catch (error) {
+        // Error dari fetchWithRetry (setelah semua percobaan gagal)
+        console.error("Fetch Error:", error);
+        return \`Maaf, terjadi masalah koneksi. \${error.message}\`;
+    }
+}
+
+
+// --- Logika Pembuatan UI Widget ---
+
+function createWidgetUI() {
+    const container = document.getElementById('vb-chat-widget-container');
+    if (!container) {
+        console.error("Container widget tidak ditemukan.");
+        return;
+    }
+
+    // Gunakan Shadow DOM untuk isolasi style
+    const shadowRoot = container.attachShadow({ mode: 'open' });
+
+    shadowRoot.innerHTML = \`
+        <style>
+            /* Reset style minimal untuk :host */
+            :host {
+                all: initial; /* Reset semua style warisan */
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                font-size: 16px;
+                line-height: 1.5;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            
+            /* Box-sizing untuk semua elemen di dalam Shadow DOM */
+            * {
+                box-sizing: border-box;
+            }
+
+            /* Style untuk tombol launcher */
+            .vb-chat-launcher {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                height: 50px; /* Tinggi yang lebih sesuai */
+                padding: 0 20px; /* Padding horizontal */
+                background-color: \${WIDGET_CONFIG.THEME_COLOR};
+                color: white;
+                border-radius: 25px; /* Bentuk pil */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                border: none;
+                transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, width 0.2s ease, padding 0.2s ease, border-radius 0.2s ease;
+                z-index: 9998;
+                font-weight: 600;
+                font-size: 0.95rem;
+                white-space: nowrap; /* Teks tidak patah */
+                overflow: hidden; /* Hindari konten keluar saat transisi */
+            }
+            .vb-chat-launcher:hover {
+                transform: scale(1.02);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            }
+
+            .vb-chat-launcher-icon {
+                width: 20px;
+                height: 20px;
+                transition: display 0.1s ease;
+            }
+
+            /* Ikon Chat (saat tertutup) */
+            .vb-chat-launcher .chat-icon-visible {
+                display: block;
+                margin-right: 8px;
+            }
+            /* Ikon Close (saat terbuka) */
+            .vb-chat-launcher .close-icon-visible {
+                display: none;
+                width: 20px;
+                height: 20px;
+            }
+            /* Teks (saat tertutup) */
+            .vb-chat-launcher .launcher-text {
+                display: inline-block;
+            }
+
+            /* State Terbuka untuk Launcher */
+            .vb-chat-launcher.open {
+                width: 50px;  /* Mengecil jadi lingkaran */
+                height: 50px;
+                padding: 0;   /* Hapus padding */
+                border-radius: 50%; /* Jadi lingkaran */
+                justify-content: center;
+            }
+            .vb-chat-launcher.open .chat-icon-visible {
+                display: none;
+            }
+            .vb-chat-launcher.open .close-icon-visible {
+                display: block;
+            }
+            .vb-chat-launcher.open .launcher-text {
+                display: none;
+            }
+            
+            /* Style untuk jendela chat */
+            .vb-chat-window {
+                position: fixed;
+                bottom: 80px; /* Disesuaikan agar di atas launcher baru (50px + 20px margin + 10px) */
+                right: 20px;
+                width: 350px;
+                height: 500px;
+                max-height: calc(100vh - 100px); /* Disesuaikan */
+                background-color: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                transform: scale(0.95) translateY(10px);
+                opacity: 0;
+                visibility: hidden;
+                transition: transform 0.2s ease, opacity 0.2s ease, visibility 0.2s;
+                z-index: 9999;
+                transform-origin: bottom right;
+            }
+            /* Responsif untuk layar kecil */
+            @media (max-width: 400px) {
+                .vb-chat-window {
+                    width: calc(100vw - 30px);
+                    height: calc(100vh - 90px); /* Disesuaikan */
+                    bottom: 80px;
+                    right: 15px;
+                }
+                .vb-chat-launcher {
+                    bottom: 15px;
+                    right: 15px;
+                }
+            }
+            .vb-chat-window.open {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+            
+            /* Header */
+            .vb-chat-header {
+                background-color: \${WIDGET_CONFIG.THEME_COLOR};
+                color: white;
+                padding: 16px;
+                border-radius: 12px 12px 0 0;
+                display: flex; 
+                align-items: center; 
+                flex-shrink: 0; /* Pastikan header tidak mengecil */
+            }
+            .vb-online-indicator {
+                width: 10px;
+                height: 10px;
+                background-color: #39ff14; /* Hijau neon */
+                border-radius: 50%;
+                margin-right: 10px;
+                animation: vb-blink 1.2s infinite alternate;
+                box-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14;
+            }
+            @keyframes vb-blink {
+                from { opacity: 0.3; }
+                to { opacity: 1; }
+            }
+            .vb-chat-header h3 {
+                margin: 0;
+                font-size: 1.1rem;
+                font-weight: bold;
+            }
+            
+            /* Badan Chat */
+            .vb-chat-body {
+                flex: 1; /* Ini kunci agar bisa scroll */
+                padding: 12px;
+                overflow-y: auto;
+                background-color: #f9f9f9;
+                display: flex;
+                flex-direction: column;
+            }
+            .vb-message {
+                max-width: 80%;
+                padding: 10px 14px;
+                border-radius: 18px;
+                margin-bottom: 10px;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                word-wrap: break-word;
+            }
+            .vb-message.user {
+                background-color: \${WIDGET_CONFIG.THEME_COLOR};
+                color: white;
+                align-self: flex-end;
+                border-bottom-right-radius: 4px;
+            }
+            .vb-message.bot {
+                background-color: #e5e5e5;
+                color: #333;
+                align-self: flex-start;
+                border-bottom-left-radius: 4px;
+            }
+            .vb-message.bot.typing {
+                color: #777;
+                font-style: italic;
+            }
+            
+            /* Footer/Input */
+            .vb-chat-footer {
+                padding: 12px;
+                border-top: 1px solid #e0e0e0;
+                background-color: #ffffff;
+                flex-shrink: 0; /* Pastikan footer tidak mengecil */
+            }
+            .vb-chat-footer form {
+                display: flex;
+                gap: 8px;
+                align-items: center; /* Vertically center input and button */
+            }
+            .vb-chat-input {
+                flex: 1;
+                border: 1px solid #ccc;
+                border-radius: 20px;
+                padding: 10px 16px;
+                font-size: 0.9rem;
+                outline: none;
+                transition: border-color 0.2s;
+                font-family: inherit; /* Warisi font family */
+            }
+            .vb-chat-input:focus {
+                border-color: \${WIDGET_CONFIG.THEME_COLOR};
+            }
+            .vb-chat-send-btn {
+                background-color: \${WIDGET_CONFIG.THEME_COLOR};
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 42px;
+                height: 42px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: background-color 0.2s, opacity 0.2s;
+                flex-shrink: 0; /* Pastikan tombol tidak mengecil */
+            }
+            .vb-chat-send-btn:hover {
+                opacity: 0.9;
+            }
+            .vb-chat-send-btn:disabled {
+                background-color: #ccc;
+                cursor: not-allowed;
+                opacity: 0.7;
+            }
+            .vb-chat-send-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+        </style>
+        
+        <!-- HTML untuk Widget -->
+        <div class="vb-chat-window" id="vb-chat-window">
+            <div class="vb-chat-header">
+                <span class="vb-online-indicator"></span>
+                <h3>\${WIDGET_CONFIG.WIDGET_NAME}</h3>
+            </div>
+            <div class="vb-chat-body" id="vb-chat-body">
+                <!-- Pesan selamat datang -->
+                <div class="vb-message bot" id="vb-welcome-msg">
+                    \${WIDGET_CONFIG.WELCOME_MSG}
+                </div>
+            </div>
+            <div class="vb-chat-footer">
+                <form id="vb-chat-form">
+                    <input type="text" id="vb-chat-input" class="vb-chat-input" placeholder="Ketik pesan Anda..." autocomplete="off">
+                    <button type="submit" id="vb-chat-send-btn" class="vb-chat-send-btn" aria-label="Kirim">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <button class="vb-chat-launcher" id="vb-chat-launcher" aria-label="Buka Chat">
+            <!-- Ikon Chat (terlihat saat widget tertutup) -->
+            <img class="vb-chat-launcher-icon chat-icon-visible" src="https://raw.githubusercontent.com/gerryramdani-star/cesana/refs/heads/main/assets/whatsapp%20icon%20resize.png" alt="Chat Icon" />
+            
+            <!-- Ikon Tutup (terlihat saat widget terbuka) -->
+            <svg class="vb-chat-launcher-icon close-icon-visible" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z" clip-rule="evenodd" />
+            </svg>
+            
+            <span class="launcher-text">\${WIDGET_CONFIG.LAUNCHER_TEXT}</span>
+        </button>
+    \`;
+
+    // --- Menambahkan Logika Event Listener ke Elemen Shadow DOM ---
+    const launcher = shadowRoot.getElementById('vb-chat-launcher');
+    const chatWindow = shadowRoot.getElementById('vb-chat-window');
+    const chatBody = shadowRoot.getElementById('vb-chat-body');
+    const chatForm = shadowRoot.getElementById('vb-chat-form');
+    const chatInput = shadowRoot.getElementById('vb-chat-input');
+    const sendBtn = shadowRoot.getElementById('vb-chat-send-btn');
+    const welcomeMsgEl_shadow = shadowRoot.getElementById('vb-welcome-msg');
+
+    if (!WIDGET_CONFIG.WELCOME_MSG && welcomeMsgEl_shadow) {
+        welcomeMsgEl_shadow.style.display = 'none';
+    }
+
+    // Toggle buka/tutup chat
+    launcher.addEventListener('click', () => {
+        const isOpen = chatWindow.classList.toggle('open');
+        launcher.classList.toggle('open', isOpen);
+        
+        if (isOpen) {
+            chatInput.focus(); // Fokus ke input saat dibuka
+        }
+    });
+    
+    // Kirim pesan
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const messageText = chatInput.value.trim();
+        if (!messageText) return;
+
+        addMessage(messageText, 'user');
+        chatInput.value = '';
+        sendBtn.disabled = true;
+
+        const typingIndicator = addMessage('...', 'bot typing');
+        
+        const aiResponse = await callGeminiAPI(messageText);
+        
+        if (chatBody && typingIndicator) {
+            chatBody.removeChild(typingIndicator);
+        }
+        addMessage(aiResponse, 'bot');
+        sendBtn.disabled = false;
+        chatInput.focus();
+    });
+
+    // Aktifkan/nonaktifkan tombol kirim berdasarkan input
+    chatInput.addEventListener('input', () => {
+        sendBtn.disabled = chatInput.value.trim().length === 0;
+    });
+    // Set status awal tombol kirim
+    sendBtn.disabled = true;
+    
+    function addMessage(text, type) {
+        if (!chatBody) return null;
+        const messageEl = document.createElement('div');
+        messageEl.className = \`vb-message \${type}\`;
+        
+        // Bersihkan teks sebelum menambahkannya untuk mencegah XSS sederhana
+        // Untuk Markdown atau HTML, diperlukan sanitizer yang lebih kuat
+        const textNode = document.createTextNode(text);
+        messageEl.appendChild(textNode);
+        
+        chatBody.appendChild(messageEl);
+        // Scroll ke bawah
+        chatBody.scrollTop = chatBody.scrollHeight;
+        return messageEl;
+    }
+}
+
+// Inisialisasi UI Widget
+createWidgetUI();
+
+<` + `/script>
+<!-- Akhir Kode Widget Asisten Virtual -->`;
+            
+            outputCodeEl.value = widgetCode.trim();
+        });
+
+        // --- Logika Tombol Salin ---
+        copyBtn.addEventListener('click', () => {
+            if (!outputCodeEl.value) return;
+            
+            // Gunakan metode execCommand sebagai fallback utama karena clipboard API
+            // mungkin diblokir di iframe.
+            
+            const textArea = document.createElement("textarea");
+            textArea.value = outputCodeEl.value;
+            // Styling agar tidak terlihat dan tidak menggeser layout
+            textArea.style.position = "fixed";
+            textArea.style.top = "-9999px";
+            textArea.style.left = "-9999px";
+            textArea.style.width = "1px";
+            textArea.style.height = "1px";
+            textArea.style.opacity = "0";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                let successful = document.execCommand('copy');
+                if (successful) {
+                    copyBtn.textContent = 'Tersalin!';
+                    setTimeout(() => { copyBtn.textContent = 'Salin Kode'; }, 2000);
+                } else {
+                    throw new Error('Fallback copy failed');
+                }
+            } catch (err) {
+                console.error('Gagal menyalin (fallback execCommand):', err);
+                // Tampilkan pesan error di UI, bukan alert
+                errorMsgEl.textContent = "Gagal menyalin. Harap salin manual.";
+                setTimeout(() => { errorMsgEl.textContent = ""; }, 3000);
+            }
+            
+            document.body.removeChild(textArea);
+        });
+
+    </script>
+</body>
+</html>
