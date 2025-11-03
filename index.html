@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generator Widget Asisten Virtual</title>
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/gerryramdani-star/virmin-chatbot/refs/heads/main/asset/virmin%20icon%201.png">
     <!-- Memuat Tailwind CSS untuk styling halaman admin ini -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Memuat PDF.js untuk membaca file PDF di browser -->
@@ -545,6 +544,7 @@ function createWidgetUI() {
                 margin-right: 10px;
                 animation: vb-blink 1.2s infinite alternate;
                 box-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14;
+                flex-shrink: 0; /* <-- Tambahkan agar tidak tergencet */
             }
             @keyframes vb-blink {
                 from { opacity: 0.3; }
@@ -554,8 +554,24 @@ function createWidgetUI() {
                 margin: 0;
                 font-size: 1.1rem;
                 font-weight: bold;
+                line-height: 1.2; /* <-- Tambahkan line-height */
             }
             
+            /* --- CSS BARU --- */
+            .vb-header-text {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.2;
+            }
+            .vb-status-text {
+                font-size: 0.8rem;
+                font-weight: 400;
+                color: white;
+                opacity: 0.85;
+                margin: 0; /* Hapus margin default */
+            }
+            /* --- AKHIR CSS BARU --- */
+
             /* Badan Chat */
             .vb-chat-body {
                 flex: 1; /* Ini kunci agar bisa scroll */
@@ -572,7 +588,8 @@ function createWidgetUI() {
                 margin-bottom: 10px;
                 font-size: 0.9rem;
                 line-height: 1.4;
-                word-wrap: break-word;
+                word-wrap: break-word; /* <-- Ganti ke properti yang didukung luas */
+                overflow-wrap: break-word; /* <-- Properti modern */
             }
             .vb-message.user {
                 background-color: \${WIDGET_CONFIG.THEME_COLOR};
@@ -646,10 +663,15 @@ function createWidgetUI() {
         
         <!-- HTML untuk Widget -->
         <div class="vb-chat-window" id="vb-chat-window">
+            <!-- --- PERUBAHAN HTML HEADER --- -->
             <div class="vb-chat-header">
                 <span class="vb-online-indicator"></span>
-                <h3>\${WIDGET_CONFIG.WIDGET_NAME}</h3>
+                <div class="vb-header-text">
+                    <h3>\${WIDGET_CONFIG.WIDGET_NAME}</h3>
+                    <p class="vb-status-text">Online</p>
+                </div>
             </div>
+            <!-- --- AKHIR PERUBAHAN HTML HEADER --- -->
             <div class="vb-chat-body" id="vb-chat-body">
                 <!-- Pesan selamat datang -->
                 <div class="vb-message bot" id="vb-welcome-msg">
@@ -801,7 +823,3 @@ createWidgetUI();
     </script>
 </body>
 </html>
-
-
-
-
